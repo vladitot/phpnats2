@@ -7,23 +7,18 @@
  */
 set_time_limit(0);
 
-//use Joli\JoliNotif\Notification;
-//use Joli\JoliNotif\NotifierFactory;
 use Nats\MessageBroker;
-use Symfony\Component\Dotenv\Dotenv;
 
 include dirname(__FILE__).'/../vendor/autoload.php';
 
-$connectionOptions = MessageBroker::createConnectionOptionsFromEnv(dirname(__FILE__).'/.env');
-
 try {
-    $broker = new MessageBroker($connectionOptions);
+    MessageBroker::setConfig(dirname(__FILE__).'/.env');
+    $broker = MessageBroker::getInstance();
 } catch (Exception $e) {
     exit('Problem with connection');
 }
 
 $broker->reSubscribeTo($argv[1]);
-
 
 while (true) {
     try {

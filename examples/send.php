@@ -8,16 +8,14 @@
 set_time_limit(0);
 
 use Nats\MessageBroker;
-use Symfony\Component\Dotenv\Dotenv;
 
 include dirname(__FILE__).'/../vendor/autoload.php';
 
-$connectionOptions = MessageBroker::createConnectionOptionsFromEnv(dirname(__FILE__).'/.env');
-
 try {
-    $broker = new MessageBroker($connectionOptions);
+    MessageBroker::setConfig(dirname(__FILE__).'/.env');
+    $broker = MessageBroker::getInstance();
 } catch (Exception $e) {
-    echo 'Problem with connection';
+    exit('Problem with connection');
 }
 
 try {

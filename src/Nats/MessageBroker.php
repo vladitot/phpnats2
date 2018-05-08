@@ -5,13 +5,14 @@
  * Date: 18.04.2018
  * Time: 14:18
  */
+
 namespace Nats;
 
 use Exception;
 use Symfony\Component\Dotenv\Dotenv;
 
 /**
- * Класс обеспечения связи с сервером сообщений
+ * Class of communication with the message server
  * Class MessageBroker
  */
 class MessageBroker
@@ -19,43 +20,92 @@ class MessageBroker
     /** @var \Nats\Connection */
     public $client;
     private $messages = [];
+    private static $_instance = null;
+    private static $connectionOption;
 
+    /**
+     * Set the path to the configuration file
+     *
+     * @param $env
+     */
+    public static function setConfig($env)
+    {
+        $dotenv = new Dotenv();
+        $dotenv->load($env);
+        self::$connectionOption = new \Nats\ConnectionOptions(
+            [
+                'user' => getenv('USER'),
+                'pass' => getenv('PASS'),
+                'host' => getenv('HOST'),
+                'token' => getenv('TOKEN')
+            ]
+        );
+    }
+
+    /**
+     * Creates or returns an instance of an object
+     *
+     * @return MessageBroker
+     */
+    public static function getInstance()
+    {
+        if (is_null(self::$_instance)) {
+            self::$_instance = new self();
+        }
+        return self::$_instance;
+    }
 
     /**
      * MessageBroker constructor.
+     *
      * @throws Exception
      */
-    public function __construct($connectionOptions)
+    private function __construct()
     {
-        $client = new \Nats\Connection($connectionOptions);
+        $client = new \Nats\Connection(self::$connectionOption);
         try {
             $client->connect(30);
             $this->client = $client;
         } catch (\Exception $e) {
-            throw new Exception('Ошибка подключения к серверу сообщений', $e->getCode(), $e);
+            throw new Exception('Error connecting to the message server', $e->getCode(), $e);
         }
     }
 
+    private function __wakeup()
+    {
+
+    }
+
+    private function __clone()
+    {
+
+    }
+
     /**
-     * Отправить сообщение в канал
+     * Send a message to the channel
+     *
      * @param $subject
      * @param $message
      * @throws Exception
      */
-    public function publishMessage($subject, $message) {
+    public function publishMessage($subject, $message)
+    {
         try {
             $this->client->publish($subject, $message);
         } catch (\Nats\Exception $e) {
-            throw new Exception('Ошибка отправки сообщения', $e->getCode(), $e);
+            throw new Exception('Error sending message', $e->getCode(), $e);
         }
     }
 
     /**
-     * Подписывается на канал в режиме очереди (сообщение получит только один рандомный участник очереди)
+     * Subscribe to a channel as a queue member
+     *      (only one random participant of the queue will receive the message)
+     *
      * @param $channel
      * @param $queue
      */
-    public function subscribeToQueue($channel, $queue) {
+    public function subscribeToQueue($channel, $queue)
+    {
         $this->client->queueSubscribe(
             $channel,
             $queue,
@@ -65,10 +115,13 @@ class MessageBroker
         );
     }
 
-    /** Подписаться на канал
+    /**
+     * Subscribe to a channel
+     *
      * @param $channel
      */
-    public function subscribeToSubject($channel) {
+    public function subscribeToSubject($channel)
+    {
         $this->client->subscribe(
             $channel,
             function ($message) {
@@ -78,61 +131,66 @@ class MessageBroker
     }
 
     /**
-     * Получить последнее сообщение.
-     * хз. как оно будет себя вести при наличиии коллбеков, поэтому получаю наверняка конкретный элемент
+     * Get latest message
      *
      * @return mixed
      */
     private function getMessage()
     {
-        if (count($this->messages)==0) return null;
+        if (count($this->messages) == 0) {
+            return null;
+        }
         $keys = array_keys($this->messages);
-        $message = $this->messages[$keys[count($keys)-1]];
-        unset($this->messages[$keys[count($keys)-1]]);
+        $message = $this->messages[$keys[count($keys) - 1]];
+        unset($this->messages[$keys[count($keys) - 1]]);
         return $message;
     }
 
     /**
-     * Ожидает одного сообщения и возвращает его
+     * Waits for one message and returns it
+     *
      * @return mixed
      */
-    public function waitForOneMessage($subject, $queueGroup=null) {
-        $newMessage=null;
+    public function waitForOneMessage($subject, $queueGroup = null)
+    {
+        $newMessage = null;
         while (true) {
             $this->client->ping();
             $this->client->wait(1);
             $newMessage = $this->getMessage();
-            if ($newMessage!==null) {
+            if ($newMessage !== null) {
                 break;
             } else {
                 $this->client->reconnect();
                 $this->reSubscribeTo($subject, $queueGroup);
-                echo 'reconnected'."\n";
+                echo 'reconnected' . "\n";
             }
         }
         return $newMessage;
     }
 
     /**
-     * Подключиться или переподключиться к каналу в обычном режиме или в режие очереди
+     * Connect or reconnect to the channel in normal mode or in the queue mode
+     *
      * @param $subject
      * @param null $queueGroup
      */
-    public function reSubscribeTo($subject, $queueGroup=null) {
-        if ($queueGroup==null) {
+    public function reSubscribeTo($subject, $queueGroup = null)
+    {
+        if ($queueGroup == null) {
             $prefix = $subject;
         } else {
             $prefix = $subject . '-' . $queueGroup;
         }
 
         foreach ($this->client->getSubscriptions() as $subscriptionName) {
-            if (stristr($subscriptionName, $prefix)===0) {
+            if (stristr($subscriptionName, $prefix) === 0) {
                 $this->client->unsubscribe($subscriptionName);
                 break;
             }
         }
 
-        if ($queueGroup!=null) {
+        if ($queueGroup != null) {
             $this->subscribeToQueue($subject, $queueGroup);
         } else {
             $this->subscribeToSubject($subject);
@@ -141,46 +199,29 @@ class MessageBroker
 
 
     /**
-     * Отправить короткое сообщение в канал и закрыть его за собой
+     * Send a short message to the channel and close it
+     *
      * @param $subject
      * @param $message
      * @return bool
      */
-    public static function fastMessageToSubject($subject, $message) {
+    public static function fastMessageToSubject($subject, $message)
+    {
         try {
-            $broker = new self(self::createConnectionOptionsFromEnv());
+            $broker = new self();
         } catch (Exception $e) {
             echo 'Problem with connection';
             return false;
         }
+        $return = false;
         try {
             $broker->publishMessage($subject, $message);
+            $return = true;
         } catch (Exception $e) {
             echo 'Problem with sending to debug';
-            return false;
+        } finally {
+            $broker->client->close();
         }
-        $broker->client->close();
-        return true;
-    }
-
-    /**
-     * Создать параметры подключения
-     * @param null $env
-     * @return ConnectionOptions
-     */
-    public static function createConnectionOptionsFromEnv($env=null) {
-        if ($env==null) {
-            $env=__DIR__.'/../.env';
-        }
-        $dotenv = new Dotenv();
-        $dotenv->load($env);
-        return new \Nats\ConnectionOptions(
-            [
-                'user'=>getenv('USER'),
-                'pass'=>getenv('PASS'),
-                'host'=>getenv('HOST'),
-                'token'=>getenv('TOKEN')
-            ]
-        );
+        return $return;
     }
 }

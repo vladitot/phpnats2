@@ -21,7 +21,7 @@ class MessageBroker
     public $client;
     private $messages = [];
     private static $_instance = null;
-    private static $connectionOption;
+    protected static $connectionOption;
 
     /**
      * Set the path to the configuration file
@@ -69,6 +69,14 @@ class MessageBroker
         } catch (\Exception $e) {
             throw new Exception('Error connecting to the message server', $e->getCode(), $e);
         }
+    }
+
+    /**
+     * @param mixed $connectionOption
+     */
+    public static function setConnectionOption($connectionOption)
+    {
+        self::$connectionOption = $connectionOption;
     }
 
     private function __wakeup()

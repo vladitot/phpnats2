@@ -32,20 +32,21 @@ class MessageBroker
     {
         $dotenv = new Dotenv();
         $dotenv->load($env);
-        self::$connectionOption = new \Nats\ConnectionOptions(
+        self::setConnectionOption(new \Nats\ConnectionOptions(
             [
                 'user' => getenv('USER'),
                 'pass' => getenv('PASS'),
                 'host' => getenv('HOST'),
                 'token' => getenv('TOKEN')
             ]
-        );
+        ));
     }
 
     /**
      * Creates or returns an instance of an object
      *
      * @return MessageBroker
+     * @throws Exception
      */
     public static function getInstance()
     {
@@ -74,7 +75,7 @@ class MessageBroker
     /**
      * @param mixed $connectionOption
      */
-    public static function setConnectionOption($connectionOption)
+    protected static function setConnectionOption($connectionOption)
     {
         self::$connectionOption = $connectionOption;
     }

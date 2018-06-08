@@ -68,7 +68,7 @@ class MessageBroker
             $client->connect(30);
             $this->client = $client;
         } catch (\Exception $e) {
-            throw new Exception('Error connecting to the message server', $e->getCode(), $e);
+            throw new Exception($e->getMessage(), $e->getCode(), $e);
         }
     }
 

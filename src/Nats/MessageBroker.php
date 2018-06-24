@@ -112,6 +112,7 @@ class MessageBroker
      *
      * @param $channel
      * @param $queue
+     * @throws Exception
      */
     public function subscribeToQueue($channel, $queue)
     {
@@ -128,6 +129,7 @@ class MessageBroker
      * Subscribe to a channel
      *
      * @param $channel
+     * @throws Exception
      */
     public function subscribeToSubject($channel)
     {
@@ -159,12 +161,12 @@ class MessageBroker
      * Waits for one message and returns it
      *
      * @return mixed
+     * @throws Exception
      */
     public function waitForOneMessage($subject, $queueGroup = null)
     {
         $newMessage = null;
         while (true) {
-            $this->client->ping();
             $this->client->wait(1);
             $newMessage = $this->getMessage();
             if ($newMessage !== null) {
@@ -172,7 +174,6 @@ class MessageBroker
             } else {
                 $this->client->reconnect();
                 $this->reSubscribeTo($subject, $queueGroup);
-                echo 'reconnected' . "\n";
             }
         }
         return $newMessage;
@@ -183,6 +184,7 @@ class MessageBroker
      *
      * @param $subject
      * @param null $queueGroup
+     * @throws Exception
      */
     public function reSubscribeTo($subject, $queueGroup = null)
     {

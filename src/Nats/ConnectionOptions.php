@@ -87,17 +87,28 @@ class ConnectionOptions
      * @var array
      */
     private $configurable = [
-                             'host',
-                             'port',
-                             'user',
-                             'pass',
-                             'token',
-                             'lang',
-                             'version',
-                             'verbose',
-                             'pedantic',
-                             'reconnect',
-                            ];
+        'host',
+        'port',
+        'user',
+        'pass',
+        'token',
+        'lang',
+        'version',
+        'verbose',
+        'pedantic',
+        'reconnect',
+        'pingMinInterval',
+        'lastPingTime'
+    ];
+
+
+    /**
+     * @var int $pingMinInterval
+     *
+     * We should send pings, but not so often.
+     *
+     */
+    private $pingMinInterval = 5;
 
 
     /**
@@ -426,6 +437,7 @@ class ConnectionOptions
      * @param Traversable|array $options The connection options.
      *
      * @return void
+     * @throws Exception
      */
     public function setConnectionOptions($options)
     {
@@ -458,5 +470,21 @@ class ConnectionOptions
                 $this->$method($value);
             }
         }
+    }
+
+    /**
+     * @return int
+     */
+    public function getPingMinInterval()
+    {
+        return $this->pingMinInterval;
+    }
+
+    /**
+     * @param int $pingMinInterval
+     */
+    public function setPingMinInterval($pingMinInterval)
+    {
+        $this->pingMinInterval = $pingMinInterval;
     }
 }

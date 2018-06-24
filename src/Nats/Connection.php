@@ -13,6 +13,17 @@ use RandomLib\Generator;
  */
 class Connection
 {
+
+    /**
+     * @var int $lastPingTime
+     *
+     * Last time, when ping was
+     *
+     * We should ping connection for keep-alive
+     * Or socket is falling down without exception.
+     */
+    private $lastPingTime = 0;
+
     /**
      * Show DEBUG info?
      *
@@ -242,6 +253,7 @@ class Connection
             }
         );
         $fp = stream_socket_client($address, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT);
+        stream_set_blocking($fp, true);
         restore_error_handler();
 
         if ($fp === false) {
@@ -350,31 +362,38 @@ class Connection
      * @param integer $len Number of bytes to receive.
      *
      * @return string
+     * @throws \Exception
      */
     private function receive($len = 0)
     {
-        if ($len > 0) {
-            $chunkSize     = $this->chunkSize;
-            $line          = null;
-            $receivedBytes = 0;
-            while ($receivedBytes < $len) {
-                $bytesLeft = ($len - $receivedBytes);
-                if ($bytesLeft < $this->chunkSize) {
-                    $chunkSize = $bytesLeft;
+        stream_set_blocking($this->streamSocket, false);
+        $line = false;
+        while ($line == false) {
+            $this->ping();
+            if ($len > 0) {
+                $chunkSize     = $this->chunkSize;
+                $line          = null;
+                $receivedBytes = 0;
+                while ($receivedBytes < $len) {
+                    $bytesLeft = ($len - $receivedBytes);
+                    if ($bytesLeft < $this->chunkSize) {
+                        $chunkSize = $bytesLeft;
+                    }
+
+                    $readChunk      = fread($this->streamSocket, $chunkSize);
+                    $receivedBytes += strlen($readChunk);
+                    $line          .= $readChunk;
                 }
-
-                $readChunk      = fread($this->streamSocket, $chunkSize);
-                $receivedBytes += strlen($readChunk);
-                $line          .= $readChunk;
+            } else {
+                $line = fgets($this->streamSocket);
             }
-        } else {
-            $line = fgets($this->streamSocket);
-        }
 
+
+        }
+        stream_set_blocking($this->streamSocket, true);
         if ($this->debug === true) {
-            printf('<<<< %s\r\n', $line);
+            printf("<<<< %s\r\n", $line);
         }
-
         return $line;
     }
 
@@ -382,6 +401,7 @@ class Connection
      * Handles PING command.
      *
      * @return void
+     * @throws \Exception
      */
     private function handlePING()
     {
@@ -471,22 +491,28 @@ class Connection
      * Sends PING message.
      *
      * @return void
+     * @throws \Exception
      */
     public function ping()
     {
-        $msg = 'PING';
-        $this->send($msg);
-        $this->pings += 1;
+        if ((time()-$this->lastPingTime)>$this->options->getPingMinInterval()) {
+            $msg = 'PING';
+            $this->send($msg);
+            $this->pings += 1;
+            $this->lastPingTime = time();
+        }
     }
 
     /**
      * Request does a request and executes a callback with the response.
      *
-     * @param string   $subject  Message topic.
-     * @param string   $payload  Message data.
+     * @param string $subject Message topic.
+     * @param string $payload Message data.
      * @param \Closure $callback Closure to be executed as callback.
      *
      * @return void
+     * @throws Exception
+     * @throws \Exception
      */
     public function request($subject, $payload, \Closure $callback)
     {
@@ -503,10 +529,11 @@ class Connection
     /**
      * Subscribes to an specific event given a subject.
      *
-     * @param string   $subject  Message topic.
+     * @param string $subject Message topic.
      * @param \Closure $callback Closure to be executed as callback.
      *
      * @return string
+     * @throws \Exception
      */
     public function subscribe($subject, \Closure $callback)
     {
@@ -520,11 +547,12 @@ class Connection
     /**
      * Subscribes to an specific event given a subject and a queue.
      *
-     * @param string   $subject  Message topic.
-     * @param string   $queue    Queue name.
+     * @param string $subject Message topic.
+     * @param string $queue Queue name.
      * @param \Closure $callback Closure to be executed as callback.
      *
      * @return string
+     * @throws \Exception
      */
     public function queueSubscribe($subject, $queue, \Closure $callback)
     {
@@ -538,10 +566,11 @@ class Connection
     /**
      * Unsubscribe from a event given a subject.
      *
-     * @param string  $sid      Subscription ID.
+     * @param string $sid Subscription ID.
      * @param integer $quantity Quantity of messages.
      *
      * @return void
+     * @throws \Exception
      */
     public function unsubscribe($sid, $quantity = null)
     {
@@ -561,11 +590,12 @@ class Connection
      *
      * @param string $subject Message topic.
      * @param string $payload Message data.
-     * @param string $inbox   Message inbox.
+     * @param string $inbox Message inbox.
      *
      * @return void
      *
      * @throws Exception If subscription not found.
+     * @throws \Exception
      */
     public function publish($subject, $payload = null, $inbox = null)
     {
@@ -585,12 +615,13 @@ class Connection
      * @param integer $quantity Number of messages to wait for.
      *
      * @return Connection $connection Connection object
+     * @throws \Exception
      */
     public function wait($quantity = 0)
     {
         $count = 0;
         $info  = stream_get_meta_data($this->streamSocket);
-        while (is_resource($this->streamSocket) === true && feof($this->streamSocket) === false && empty($info['timed_out']) === true) {
+        while (is_resource($this->streamSocket) && !feof($this->streamSocket) && empty($info['timed_out'])) {
             $line = $this->receive();
 
             if ($line === false) {
@@ -621,6 +652,7 @@ class Connection
      * Reconnects to the server.
      *
      * @return void
+     * @throws \Exception
      */
     public function reconnect()
     {

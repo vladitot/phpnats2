@@ -146,7 +146,7 @@ class MessageBroker
      *
      * @return mixed
      */
-    private function getMessage()
+    public function getMessage()
     {
         if (count($this->messages) == 0) {
             return null;

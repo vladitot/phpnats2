@@ -1,7 +1,7 @@
 <?php
 namespace Nats;
 
-/**
+/***
  * Message Class.
  *
  * @package Nats

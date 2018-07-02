@@ -18,13 +18,12 @@ try {
     exit('Problem with connection');
 }
 
-$broker->reSubscribeTo($argv[1]);
+
 
 while (true) {
     try {
-        if ($message = $broker->waitForOneMessage($argv[1])) {
-            echo $message."\n\n";
-        }
+        $broker->client->wait(1);
+        echo $broker->getMessage();
     } catch (Exception $e) {
         exit($e->getMessage());
     }

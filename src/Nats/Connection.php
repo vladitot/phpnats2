@@ -370,13 +370,9 @@ class Connection
      */
     private function receive($len = 0)
     {
-        $start_time = time();
         stream_set_blocking($this->streamSocket, false);
         $line = false;
         while ($line == false) {
-            if ((time() - $start_time) > $this->waitingMessageTimeout) {
-                throw new \Exception("Timeout waiting message");
-            }
             $this->ping();
             if ($len > 0) {
                 $chunkSize     = $this->chunkSize;
@@ -627,9 +623,13 @@ class Connection
      */
     public function wait($quantity = 0)
     {
+        $start_time = time();
         $count = 0;
         $info  = stream_get_meta_data($this->streamSocket);
         while (is_resource($this->streamSocket) && !feof($this->streamSocket) && empty($info['timed_out'])) {
+            if ((time() - $start_time) > $this->waitingMessageTimeout) {
+                throw new \Exception("Timeout waiting message");
+            }
             $line = $this->receive();
 
             if ($line === false) {

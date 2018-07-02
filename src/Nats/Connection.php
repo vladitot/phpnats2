@@ -13,7 +13,11 @@ use RandomLib\Generator;
  */
 class Connection
 {
-
+    /**
+     * @var int
+     * для прерывания времени ожидания сообщения
+     */
+    private $waitingMessageTimeout = 60;
     /**
      * @var int $lastPingTime
      *
@@ -366,9 +370,13 @@ class Connection
      */
     private function receive($len = 0)
     {
+        $start_time = time();
         stream_set_blocking($this->streamSocket, false);
         $line = false;
         while ($line == false) {
+            if ((time() - $start_time) > $this->waitingMessageTimeout) {
+                throw new \Exception("Timeout waiting message");
+            }
             $this->ping();
             if ($len > 0) {
                 $chunkSize     = $this->chunkSize;

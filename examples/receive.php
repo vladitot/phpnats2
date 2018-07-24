@@ -15,8 +15,10 @@ try {
     MessageBroker::setConfig(dirname(__FILE__).'/.env');
     $broker = MessageBroker::getInstance();
 } catch (Exception $e) {
-    exit('Problem with connection');
+    exit('Problem with connection'. $e->getMessage());
 }
+
+$broker->subscribeToSubject($argv[1]);
 
 
 

@@ -37,6 +37,13 @@ class Message
      */
     private $conn;
 
+    /**
+     * Нужно ли отвечать на это сообщение
+     *
+     * @var bool
+     */
+    private $needResponse;
+
 
     /**
      * Message constructor.
@@ -52,6 +59,9 @@ class Message
         $this->setBody($body);
         $this->setSid($sid);
         $this->setConn($conn);
+        $this->needResponse(
+            (strripos($this->subject, '_INBOX')!==false)
+        );
     }
 
 
@@ -176,9 +186,27 @@ class Message
      */
     public function reply($body)
     {
-        $this->conn->publish(
-            $this->subject,
-            $body
-        );
+        if ($this->needResponse) {
+            $this->conn->publish(
+                $this->subject,
+                $body
+            );
+        }
+    }
+
+    /**
+     * @param bool $needResponse
+     */
+    private function needResponse($needResponse)
+    {
+        $this->needResponse = $needResponse;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getNeedResponse()
+    {
+        return $this->needResponse;
     }
 }

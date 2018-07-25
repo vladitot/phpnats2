@@ -19,10 +19,11 @@ class MessageBroker
 {
     /** @var \Nats\Connection */
     public $client;
-    private $messages = [];
+
+    protected $messages = [];
+
     private static $_instance = null;
     protected static $connectionOption;
-
     /**
      * Set the path to the configuration file
      *
@@ -119,8 +120,8 @@ class MessageBroker
         $this->client->queueSubscribe(
             $channel,
             $queue,
-            function ($message) {
-                $this->messages[] = $message;
+            function ($message) use ($channel) {
+                $this->messages[$channel][] = $message;
             }
         );
     }
@@ -135,8 +136,8 @@ class MessageBroker
     {
         $this->client->subscribe(
             $channel,
-            function ($message) {
-                $this->messages[] = $message;
+            function ($message) use ($channel) {
+                $this->messages[$channel][] = $message;
             }
         );
     }
@@ -144,17 +145,31 @@ class MessageBroker
     /**
      * Get latest message
      *
-     * @return mixed
+     * @param null $channel
+     * @return Message
      */
-    public function getMessage()
+    public function getMessage($channel=null)
     {
-        if (count($this->messages) == 0) {
-            return null;
+        if ($channel!=null && is_array($this->messages[$channel])) {
+            if (count($this->messages[$channel]) == 0) {
+                return null;
+            }
+            $keys = array_keys($this->messages[$channel]);
+            $message = $this->messages[$channel][$keys[count($keys) - 1]];
+            unset($this->messages[$channel][$keys[count($keys) - 1]]);
+            return $message;
+        } else {
+            $message = null;
+            foreach ($this->messages as $channel=>&$messagesPack) {
+                if (count($messagesPack) == 0) {
+                    continue;
+                }
+                $keys = array_keys($messagesPack);
+                $message = $messagesPack[$keys[count($keys) - 1]];
+                unset($messagesPack[$keys[count($keys) - 1]]);
+            }
+            return $message;
         }
-        $keys = array_keys($this->messages);
-        $message = $this->messages[$keys[count($keys) - 1]];
-        unset($this->messages[$keys[count($keys) - 1]]);
-        return $message;
     }
 
     /**
@@ -234,5 +249,24 @@ class MessageBroker
             $broker->client->close();
         }
         return $return;
+    }
+
+    /**
+     * Send request to the channel
+     * @param $subject
+     * @param $message
+     * @return mixed
+     * @throws Exception
+     */
+    public function publishRequest($subject, $message)
+    {
+        try {
+            $this->client->request($subject, $message, function ($response) use ($subject) {
+                $this->messages[$subject][] = $response;
+            });
+        } catch (\Nats\Exception $e) {
+            throw new Exception('Error sending message', $e->getCode(), $e);
+        }
+        return $subject;
     }
 }

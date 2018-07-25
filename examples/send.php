@@ -9,17 +9,23 @@ set_time_limit(0);
 
 use Nats\MessageBroker;
 
-include dirname(__FILE__).'/../vendor/autoload.php';
+include dirname(__FILE__) . '/../vendor/autoload.php';
 
 try {
-    MessageBroker::setConfig(dirname(__FILE__).'/.env');
+    MessageBroker::setConfig(dirname(__FILE__) . '/.env');
     $broker = MessageBroker::getInstance();
 } catch (Exception $e) {
     exit('Problem with connection');
 }
 
 try {
-    $broker->publishMessage($argv[1], $argv[2]);
+    //Отправка запроса и ожидание ответа
+    $channelForWaitResult = $broker->publishRequest($argv[1], 'Request: '.$argv[2]);
+    $response = $broker->getMessage($channelForWaitResult);
+    echo $response;
+
+    //Отправка сообщения в один конец
+    $broker->publishMessage($argv[1], 'Message :'.$argv[2]);
 } catch (Exception $e) {
     echo $e->getMessage();
 }

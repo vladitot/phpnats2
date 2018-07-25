@@ -1,6 +1,7 @@
 <?php
 namespace Nats;
 
+use Nats\Exceptions\TimeOutWaitingMessage;
 use RandomLib\Factory;
 use RandomLib\Generator;
 
@@ -628,7 +629,7 @@ class Connection
         $info  = stream_get_meta_data($this->streamSocket);
         while (is_resource($this->streamSocket) && !feof($this->streamSocket) && empty($info['timed_out'])) {
             if ((time() - $start_time) > $this->waitingMessageTimeout) {
-                throw new \Exception("Timeout waiting message");
+                throw new TimeOutWaitingMessage("Timeout waiting message");
             }
             $line = $this->receive();
 

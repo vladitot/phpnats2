@@ -7,6 +7,7 @@
  */
 set_time_limit(0);
 
+use Nats\Exceptions\TimeOutWaitingMessage;
 use Nats\MessageBroker;
 
 include dirname(__FILE__) . '/../vendor/autoload.php';
@@ -29,7 +30,7 @@ while (true) {
             echo $message . "\n";
             $message->reply('Recieved: '.$message."\n");
         }
-    } catch (Exception $e) {
+    } catch (TimeOutWaitingMessage $e) {
         exit($e->getMessage());
     }
 }

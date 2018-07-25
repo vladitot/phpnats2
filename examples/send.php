@@ -7,6 +7,7 @@
  */
 set_time_limit(0);
 
+use Nats\Exceptions\TimeOutWaitingMessage;
 use Nats\MessageBroker;
 
 include dirname(__FILE__) . '/../vendor/autoload.php';
@@ -26,6 +27,6 @@ try {
 
     //Отправка сообщения в один конец
     $broker->publishMessage($argv[1], 'Message :'.$argv[2]);
-} catch (Exception $e) {
+} catch (TimeOutWaitingMessage $e) {
     echo $e->getMessage();
 }

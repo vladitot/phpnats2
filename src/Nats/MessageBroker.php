@@ -111,17 +111,19 @@ class MessageBroker
      * Subscribe to a channel as a queue member
      *      (only one random participant of the queue will receive the message)
      *
-     * @param $channel
+     * @param $subject
      * @param $queue
      * @throws Exception
      */
-    public function subscribeToQueue($channel, $queue)
+    public function subscribeToQueue($subject, $queue)
     {
         $this->client->queueSubscribe(
-            $channel,
+            $subject,
             $queue,
-            function ($message) use ($channel) {
-                $this->messages[$channel][] = $message;
+            function ($message) use ($subject) {
+                /** @var Message $message */
+                $message->setOriginalSubject($subject);
+                $this->messages[$subject][] = $message;
             }
         );
     }
@@ -129,15 +131,17 @@ class MessageBroker
     /**
      * Subscribe to a channel
      *
-     * @param $channel
+     * @param $subject
      * @throws Exception
      */
-    public function subscribeToSubject($channel)
+    public function subscribeToSubject($subject)
     {
         $this->client->subscribe(
-            $channel,
-            function ($message) use ($channel) {
-                $this->messages[$channel][] = $message;
+            $subject,
+            function ($message) use ($subject) {
+                /** @var Message $message */
+                $message->setOriginalSubject($subject);
+                $this->messages[$subject][] = $message;
             }
         );
     }
@@ -262,6 +266,8 @@ class MessageBroker
     {
         try {
             $this->client->request($subject, $message, function ($response) use ($subject) {
+                /** @var Message $response */
+                $response->setOriginalSubject($subject);
                 $this->messages[$subject][] = $response;
             });
         } catch (\Nats\Exception $e) {

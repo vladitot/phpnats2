@@ -44,6 +44,12 @@ class Message
      */
     private $needResponse;
 
+    /**
+     * Original channel name
+     * @var string
+     *
+     */
+    private $originalSubject;
 
     /**
      * Message constructor.
@@ -208,5 +214,21 @@ class Message
     public function getNeedResponse()
     {
         return $this->needResponse;
+    }
+
+    /**
+     * @return string
+     */
+    public function getOriginalSubject()
+    {
+        return $this->originalSubject;
+    }
+
+    /**
+     * @param string $originalSubject
+     */
+    public function setOriginalSubject($originalSubject)
+    {
+        $this->originalSubject = $originalSubject;
     }
 }

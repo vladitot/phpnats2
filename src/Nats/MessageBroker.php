@@ -23,7 +23,7 @@ class MessageBroker
     protected $messages = [];
 
     private static $_instance = null;
-    protected static $connectionOption;
+    public static $connectionOption;
     /**
      * Set the path to the configuration file
      *

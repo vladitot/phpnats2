@@ -31,6 +31,6 @@ while (true) {
             $message->reply('Recieved: '.$message."\n");
         }
     } catch (TimeOutWaitingMessage $e) {
-        exit($e->getMessage());
+        echo 'timeout'."\n";
     }
 }

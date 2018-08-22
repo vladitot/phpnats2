@@ -22,6 +22,7 @@ try {
 try {
     //Отправка запроса и ожидание ответа
     $channelForWaitResult = $broker->publishRequest($argv[1], 'Request: '.$argv[2]);
+    $broker->wait(1);
     $response = $broker->getMessage($channelForWaitResult);
     echo $response;
 

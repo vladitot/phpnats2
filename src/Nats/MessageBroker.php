@@ -58,6 +58,16 @@ class MessageBroker
     }
 
     /**
+     * Wait for a new message.
+     * How much messages wait - quantity;
+     * @param int $quantity
+     * @throws Exception
+     */
+    public function wait($quantity = 0) {
+        $this->client->wait($quantity);
+    }
+
+    /**
      * MessageBroker constructor.
      *
      * @throws Exception

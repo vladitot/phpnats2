@@ -393,7 +393,10 @@ class Connection
                 $line = fgets($this->streamSocket);
             }
 
-
+            if ($line==false) {
+                //задержка, чтобы не жрать CPU как бешеный, но при этом быть на линии, чтобы не отваливаться по таймауту.
+                usleep(10000);
+            }
         }
         stream_set_blocking($this->streamSocket, true);
         if ($this->debug === true) {

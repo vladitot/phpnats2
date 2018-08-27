@@ -63,8 +63,14 @@ class MessageBroker
      * @param int $quantity
      * @throws Exception
      */
-    public function wait($quantity = 0) {
-        $this->client->wait($quantity);
+    public function wait($quantity = 0, $channel=null) {
+        if ($channel==null) {
+            $this->client->wait($quantity);
+        } else {
+            while (!isset($this->messages[$channel]) || !is_array($this->messages[$channel]) || count($this->messages[$channel])<$quantity) {
+                $this->client->wait($quantity);
+            }
+        }
     }
 
     /**
@@ -164,7 +170,7 @@ class MessageBroker
      */
     public function getMessage($channel=null)
     {
-        if ($channel!=null && is_array($this->messages[$channel])) {
+        if ($channel!=null && isset($this->messages[$channel]) && is_array($this->messages[$channel])) {
             if (count($this->messages[$channel]) == 0) {
                 return null;
             }

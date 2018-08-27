@@ -74,6 +74,14 @@ class MessageBroker
     }
 
     /**
+     * Выполнить вручную пинг
+     * @throws Exception
+     */
+    public function ping() {
+        $this->client->ping();
+    }
+
+    /**
      * MessageBroker constructor.
      *
      * @throws Exception

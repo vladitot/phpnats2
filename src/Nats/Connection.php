@@ -16,6 +16,12 @@ class Connection
 {
     /**
      * @var int
+     * для отслеживания времени последнего отправленного сообщения
+     */
+    private $lastSentMessageTime = 0;
+
+    /**
+     * @var int
      * для прерывания времени ожидания сообщения
      */
     private $waitingMessageTimeout = 60;
@@ -151,7 +157,7 @@ class Connection
      *
      * @var float
      */
-    private $timeout = null;
+    private $timeout = 30;
 
     /**
      * Stream File Pointer.
@@ -338,7 +344,12 @@ class Connection
     {
         $msg = $payload."\r\n";
         $len = strlen($msg);
+        $nowTime = time();
         while (true) {
+            if (($this->lastSentMessageTime !== 0) && (($nowTime - $this->lastSentMessageTime) > $this->timeout/2)){
+                $this->lastSentMessageTime = 0;
+                $this->reconnect();
+            }
             $written = @fwrite($this->streamSocket, $msg);
             if ($written === false) {
                 throw new \Exception('Error sending data');
@@ -352,6 +363,7 @@ class Connection
             if ($len > 0) {
                 $msg = substr($msg, (0 - $len));
             } else {
+                $this->lastSentMessageTime = time();
                 break;
             }
         }

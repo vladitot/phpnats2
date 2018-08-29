@@ -90,7 +90,7 @@ class MessageBroker
     {
         $client = new \Nats\Connection(self::$connectionOption);
         try {
-            $client->connect(30);
+            $client->connect($this->client->getTimeout());
             $this->client = $client;
         } catch (\Exception $e) {
             throw new Exception($e->getMessage(), $e->getCode(), $e);

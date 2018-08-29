@@ -344,10 +344,9 @@ class Connection
     {
         $msg = $payload."\r\n";
         $len = strlen($msg);
-        $nowTime = time();
         while (true) {
-            if (($this->lastSentMessageTime !== 0) && (($nowTime - $this->lastSentMessageTime) > $this->timeout/2)){
-                $this->lastSentMessageTime = 0;
+            if (($this->lastSentMessageTime !== 0) && ((time() - $this->lastSentMessageTime) > $this->timeout/2)) {
+                $this->lastSentMessageTime = time();
                 $this->reconnect();
             }
             $written = @fwrite($this->streamSocket, $msg);
@@ -698,5 +697,13 @@ class Connection
 
         fclose($this->streamSocket);
         $this->streamSocket = null;
+    }
+
+    /**
+     * @return float
+     */
+    public function getTimeout()
+    {
+        return $this->timeout;
     }
 }
